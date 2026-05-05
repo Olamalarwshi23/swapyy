@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <title>سوابي - Swappy</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f1a; --bg2: #1a1a2e; --accent: #e84393; --gold: #f6c90e;
+      --green: #2ecc71; --red: #e74c3c; --card-bg: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.08); --text: #ffffff;
+      --text-muted: rgba(255,255,255,0.45);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html, body { height: 100%; width: 100%; background: var(--bg);
+      font-family: 'Noto Kufi Arabic', sans-serif; color: var(--text);
+      overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    #app { height: 100%; display: flex; flex-direction: column; }
+    .screen { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+    .screen.active { display: flex; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;900&display=swap');
+  </style><style>
+    #authScreen { background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f3460 100%);
+      align-items: center; justify-content: center; padding: 24px;
+      padding-top: calc(var(--safe-top) + 24px); }
+    .auth-logo { text-align: center; margin-bottom: 36px; }
+    .auth-logo .icon { width: 88px; height: 88px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin: 0 auto 16px;
+      box-shadow: 0 0 50px rgba(232,67,147,0.45); }
+    .auth-logo h1 { font-size: 38px; font-weight: 900; }
+    .auth-logo p { color: var(--text-muted); font-size: 14px; margin-top: 6px; }
+    .auth-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 28px;
+      padding: 28px 24px; width: 100%; max-width: 380px; }
+    .tab-switch { display: flex; background: rgba(0,0,0,0.35);
+      border-radius: 14px; padding: 4px; margin-bottom: 22px; }
+    .tab-switch button { flex: 1; padding: 11px 0; border: none; border-radius: 10px;
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.3s; background: transparent; color: var(--text-muted); }
+    .tab-switch button.active { background: linear-gradient(135deg, var(--accent), var(--gold));
+      color: #fff; }
+    .field-group { display: flex; flex-direction: column; gap: 12px; }
+    .auth-input { width: 100%; padding: 15px 16px;
+      background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 14px; color: var(--text); font-family: inherit; font-size: 15px;
+      transition: all 0.25s; outline: none; }
+    .auth-input:focus { border-color: var(--accent); background: rgba(232,67,147,0.1); }
+    .auth-input::placeholder { color: var(--text-muted); }
+    .btn-primary { width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--gold));
+      border: none; border-radius: 16px; color: #fff; font-family: inherit;
+      font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 6px;
+      box-shadow: 0 8px 28px rgba(232,67,147,0.4); transition: transform 0.15s; }
+    .btn-primary:active { transform: scale(0.97); }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .shake { animation: shake 0.4s ease; }
+  </style><style>
+    .top-bar { display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; padding-top: calc(var(--safe-top) + 14px);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 700; flex-shrink: 0; }
+    .avatar.lg { width: 54px; height: 54px; font-size: 22px; }
+    .user-info { display: flex; align-items: center; gap: 10px; }
+    .user-info .name { font-weight: 700; font-size: 15px; }
+    .user-info .sub { color: var(--text-muted); font-size: 12px; }
+    .icon-btn { width: 42px; height: 42px; border-radius: 50%;
+      background: var(--card-bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 20px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .tabs { display: flex; background: var(--card-bg); border-radius: 14px;
+      padding: 4px; margin: 12px 16px; flex-shrink: 0; }
+    .tab-btn { flex: 1; padding: 10px 0; border: none; border-radius: 10px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.25s; background: transparent;
+      color: var(--text-muted); position: relative; }
+    .tab-btn.active { background: linear-gradient(135deg, var(--accent), #c0392b); color: #fff; }
+    .badge { position: absolute; top: 5px; left: 8px; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--gold); color: #000;
+      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .scroll-area { flex: 1; overflow-y: auto; padding: 0 16px;
+      padding-bottom: calc(var(--safe-bottom) + 16px); -webkit-overflow-scrolling: touch; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+    .add-panel { margin: 0 16px 12px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 20px; padding: 18px;
+      display: none; flex-shrink: 0; }
+    .add-panel.open { display: block; }
+    .add-panel h3 { font-size: 15px; margin-bottom: 14px; }
+    .add-panel input { width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px; color: var(--text); font-family: inherit;
+      font-size: 14px; margin-bottom: 10px; outline: none; }
+    .add-panel input::placeholder { color: var(--text-muted); }
+    .cats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .cat-btn { padding: 6px 13px; border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,0.15); background: transparent;
+      color: var(--text-muted); font-family: inherit; font-size: 12px; cursor: pointer; }
+    .cat-btn.active { border-color: var(--accent); background: rgba(232,67,147,0.18); color: var(--accent); }
+  </style><style>
+    .cards-area { position: relative; height: 460px; margin-bottom: 16px; flex-shrink: 0; }
+    .swipe-card { position: absolute; inset: 0; border-radius: 24px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4); user-select: none; touch-action: none;
+      will-change: transform; }
+    .swipe-card.behind { transform: scale(0.94) translateY(12px); z-index: 1; }
+    .swipe-card.top { z-index: 10; cursor: grab; }
+    .swipe-card img { width: 100%; height: 65%; object-fit: cover; display: block; pointer-events: none; }
+    .card-info { height: 35%; background: linear-gradient(to bottom, var(--bg2), var(--bg));
+      padding: 14px 18px 18px; }
+    .card-info .item-name { font-size: 20px; font-weight: 700; }
+    .card-info .owner { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+    .trade-tag { display: flex; align-items: center; gap: 8px; margin-top: 10px;
+      background: rgba(246,201,14,0.1); border: 1px solid rgba(246,201,14,0.3);
+      border-radius: 10px; padding: 8px 12px; }
+    .trade-tag span { color: var(--gold); font-size: 13px; font-weight: 600; }
+    .cat-badge { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+      color: #fff; border-radius: 20px; padding: 4px 14px; font-size: 12px; }
+    .overlay-label { position: absolute; top: 22px; border-width: 4px; border-style: solid;
+      border-radius: 10px; padding: 8px 16px; font-size: 26px; font-weight: 900;
+      opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+    .overlay-like { left: 18px; border-color: var(--green); color: var(--green); transform: rotate(-14deg); }
+    .overlay-nope { right: 18px; border-color: var(--red); color: var(--red); transform: rotate(14deg); }
+    .action-btns { display: flex; justify-content: center; gap: 24px; padding: 4px 0 20px; flex-shrink: 0; }
+    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer; }
+    .action-circle { width: 66px; height: 66px; border-radius: 50%; border: 2.5px solid;
+      display: flex; align-items: center; justify-content: center; font-size: 28px; transition: transform 0.15s; }
+    .action-circle:active { transform: scale(0.9); }
+    .action-circle.nope { border-color: var(--red); background: rgba(231,76,60,0.12); }
+    .action-circle.like { border-color: var(--green); background: rgba(46,204,113,0.12); }
+    .action-btn p { color: var(--text-muted); font-size: 11px; font-family: inherit; }
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state .emoji { font-size: 64px; margin-bottom: 14px; }
+    .empty-state h3 { font-size: 20px; margin-bottom: 8px; }
+    .empty-state p { color: var(--text-muted); font-size: 14px; }
+    .btn-outline { margin-top: 20px; padding: 13px 32px; border-radius: 14px;
+      border: 2px solid var(--accent); background: rgba(232,67,147,0.1);
+      color: var(--accent); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .match-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+      border-radius: 16px; background: var(--card-bg); border: 1px solid var(--border);
+      margin-bottom: 10px; cursor: pointer; }
+    .match-item:active { background: rgba(255,255,255,0.08); }
+    .match-details { flex: 1; min-width: 0; }
+    .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .match-name { font-weight: 700; font-size: 15px; }
+    .match-time { color: var(--text-muted); font-size: 12px; }
+    .match-msg { color: var(--text-muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .match-trade { color: var(--gold); font-size: 11px; margin-top: 3px; }
+    .unread-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+      color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chat-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      padding-top: calc(var(--safe-top) + 14px); background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .back-btn { background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+    .messages-area { flex: 1; overflow-y: auto; padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 12px; -webkit-overflow-scrolling: touch; }
+    .messages-area::-webkit-scrollbar { display: none; }
+    .msg-row { display: flex; }
+    .msg-row.me { justify-content: flex-start; }
+    .msg-row.other { justify-content: flex-end; }
+    .bubble { max-width: 72%; padding: 12px 15px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
+    .bubble.me { background: rgba(255,255,255,0.08); border-bottom-right-radius: 4px; }
+    .bubble.other { background: linear-gradient(135deg, var(--accent), #c0392b); border-bottom-left-radius: 4px; }
+    .bubble .time { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; text-align: left; }
+    .chat-input-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      padding-bottom: calc(var(--safe-bottom) + 12px); background: rgba(255,255,255,0.04);
+      border-top: 1px solid var(--border); flex-shrink: 0; }
+    .chat-input { flex: 1; padding: 13px 17px; background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.1); border-radius: 24px; color: var(--text);
+      font-family: inherit; font-size: 15px; outline: none; }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .send-btn { width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--gold)); color: #fff;
+      font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #matchPopup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+      align-items: center; justify-content: center; z-index: 999; padding: 24px; }
+    #matchPopup.open { display: flex; }
+    .popup-card { background: linear-gradient(135deg, var(--bg2), #0f3460);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 28px;
+      padding: 40px 28px; text-align: center; max-width: 340px; width: 100%; }
+    .popup-card .big-emoji { font-size: 68px; margin-bottom: 10px; }
+    .popup-card h2 { color: var(--gold); font-size: 30px; font-weight: 900; margin-bottom: 8px; }
+    .popup-card p { color: var(--text-muted); font-size: 15px; margin-bottom: 24px; }
+    .popup-card strong { color: var(--text); }
+    .popup-btns { display: flex; gap: 10px; }
+    .popup-btns .btn-primary { margin-top: 0; flex: 1; }
+    .popup-btns .btn-ghost { flex: 1; padding: 16px; border-radius: 16px;
+      border: 1.5px solid rgba(255,255,255,0.2); background: transparent;
+      color: var(--text); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="authScreen" class="screen active">
+    <div class="auth-logo">
+      <div class="icon">🔄</div>
+      <h1>سوابي</h1>
+      <p>قايض ما لديك، احصل على ما تريد</p>
+    </div>
+    <div class="auth-card">
+      <div class="tab-switch">
+        <button class="active" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+        <button onclick="switchAuthTab('register')">إنشاء حساب</button>
+      </div>
+      <div class="field-group">
+        <input class="auth-input" id="fullNameInput" type="text" placeholder="الاسم الكامل" style="display:none" />
+        <input class="auth-input" id="usernameInput" type="text" placeholder="اسم المستخدم" />
+        <input class="auth-input" id="passwordInput" type="password" placeholder="كلمة المرور" />
+        <button class="btn-primary" onclick="handleAuth()">دخول 🚀</button>
+      </div>
+    </div>
+  </div>
+  <div id="mainScreen" class="screen">
+    <div class="top-bar">
+      <div class="user-info">
+        <div class="avatar" id="topAvatar">م</div>
+        <div>
+          <div class="name" id="topName">مستخدم</div>
+          <div class="sub">استكشف المقايضات</div>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="toggleAddPanel()">＋</button>
+    </div>
+    <div class="add-panel" id="addPanel">
+      <h3>📦 أضف عرضك</h3>
+      <input type="text" id="newItemName" placeholder="ماذا تملك؟" />
+      <input type="text" id="newItemTrade" placeholder="ماذا تريد مقابله؟" />
+      <div class="cats" id="catsRow"></div>
+      <button class="btn-primary" onclick="addItem()">نشر العرض 🚀</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('explore')">🔍 استكشف</button>
+      <button class="tab-btn" onclick="switchTab('matches')">
+        💬 مطابقاتي
+        <span class="badge" id="matchBadge" style="display:none">0</span>
+      </button>
+    </div>
+    <div id="exploreView" class="scroll-area">
+      <div class="cards-area" id="cardsArea"></div>
+      <div class="action-btns" id="actionBtns">
+        <button class="action-btn" onclick="swipeCard('left')">
+          <div class="action-circle nope">✕</div>
+          <p>تجاوز</p>
+        </button>
+        <button class="action-btn" onclick="swipeCard('right')">
+          <div class="action-circle like">♥</div>
+          <p>أريده</p>
+        </button>
+      </div>
+    </div>
+    <div id="matchesView" class="scroll-area" style="display:none">
+      <div id="matchesList"></div>
+    </div>
+  </div>
+  <div id="chatScreen" class="screen">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeChat()">←</button>
+      <div class="avatar" id="chatAvatar">م</div>
+      <div>
+        <div class="name" id="chatName">مستخدم</div>
+        <div style="color:rgba(255,255,255,0.4);font-size:12px" id="chatSub"></div>
+      </div>
+    </div>
+    <div class="messages-area" id="messagesArea"></div>
+    <div class="chat-input-bar">
+      <input class="chat-input" id="chatInput" type="text" placeholder="اكتب رسالة..." />
+      <button class="send-btn" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+  <div id="matchPopup">
+    <div class="popup-card">
+      <div class="big-emoji">🎉</div>
+      <h2>مطابقة!</h2>
+      <p>تهانينا! تمت المطابقة مع <strong id="popupMatchName"></strong></p>
+      <div class="popup-btns">
+        <button class="btn-primary" onclick="openMatchChat()">💬 رسالة</button>
+        <button class="btn-ghost" onclick="closePopup()">تصفح المزيد</button>
+      </div>
+    </div>
+  </div>
+</div><script>
+const ITEMS = [
+  {id:1,owner:"أحمد",name:"Apple Watch Series 8",tradeFor:"سماعة AirPods Pro",img:"https://picsum.photos/seed/watch8/400/520",cat:"إلكترونيات"},
+  {id:2,owner:"سارة",name:"كاميرا Sony A6000",tradeFor:"iPad mini",img:"https://picsum.photos/seed/sonycam/400/520",cat:"إلكترونيات"},
+  {id:3,owner:"محمد",name:"دراجة هوائية",tradeFor:"سكوتر كهربائي",img:"https://picsum.photos/seed/bicycle/400/520",cat:"رياضة"},
+  {id:4,owner:"نورا",name:"حقيبة جلدية فاخرة",tradeFor:"ساعة كلاسيكية",img:"https://picsum.photos/seed/leatherbag/400/520",cat:"أزياء"},
+  {id:5,owner:"خالد",name:"PS5 + 3 ألعاب",tradeFor:"لابتوب ألعاب",img:"https://picsum.photos/seed/ps5gamer/400/520",cat:"ألعاب"},
+];
+const CATEGORIES=["إلكترونيات","أزياء","رياضة","ألعاب","كتب","أخرى"];
+let state={user:null,items:[...ITEMS],matches:[
+  {id:1,user:"أحمد",avatar:"أ",item:"Apple Watch S8",theirItem:"سماعة بلوتوث",lastMsg:"مرحبا! هل الساعة بحالة جيدة؟",time:"10:30",unread:2},
+  {id:2,user:"سارة",avatar:"س",item:"كاميرا Sony",theirItem:"iPad",lastMsg:"متى يمكننا الاجتماع؟",time:"أمس",unread:0},
+],messages:{
+  1:[{from:"other",text:"مرحبا! هل الساعة بحالة جيدة؟",time:"10:28"},{from:"me",text:"نعم، ممتازة!",time:"10:30"},{from:"other",text:"رائع! نتفق على موعد؟",time:"10:31"}],
+  2:[{from:"other",text:"متى يمكننا الاجتماع؟",time:"أمس"}],
+},topIdx:0,selectedCat:"إلكترونيات",activeMatchId:null,pendingMatch:null};
+
+function switchAuthTab(m){
+  document.querySelectorAll('.tab-switch button').forEach((b,i)=>b.classList.toggle('active',i===(m==='login'?0:1)));
+  document.getElementById('fullNameInput').style.display=m==='register'?'block':'none';
+}
+function handleAuth(){
+  const u=document.getElementById('usernameInput').value.trim();
+  if(!u){document.querySelector('.auth-card').classList.add('shake');setTimeout(()=>document.querySelector('.auth-card').classList.remove('shake'),500);return;}
+  state.user={name:u,id:1};
+  document.getElementById('topName').textContent='أهلاً، '+u;
+  document.getElementById('topAvatar').textContent=u[0];
+  showScreen('mainScreen');renderCards();renderMatches();renderCats();
+}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function switchTab(t){
+  const e=t==='explore';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',e?i===0:i===1));
+  document.getElementById('exploreView').style.display=e?'block':'none';
+  document.getElementById('matchesView').style.display=e?'none':'block';
+}
+function renderCats(){
+  document.getElementById('catsRow').innerHTML=CATEGORIES.map(c=>`<button class="cat-btn ${c===state.selectedCat?'active':''}" onclick="selectCat('${c}')">${c}</button>`).join('');
+}
+function selectCat(c){state.selectedCat=c;renderCats();}
+function toggleAddPanel(){
+  const p=document.getElementById('addPanel');p.classList.toggle('open');
+}
+function addItem(){
+  const n=document.getElementById('newItemName').value.trim();
+  const t=document.getElementById('newItemTrade').value.trim();
+  if(!n||!t)return;
+  state.items.push({id:Date.now(),owner:state.user.name,name:n,tradeFor:t,img:`https://picsum.photos/seed/${Date.now()}/400/520`,cat:state.selectedCat});
+  document.getElementById('newItemName').value='';
+  document.getElementById('newItemTrade').value='';
+  document.getElementById('addPanel').classList.remove('open');
+  renderCards();
+}
+function renderCards(){
+  const area=document.getElementById('cardsArea');
+  const btns=document.getElementById('actionBtns');
+  const rem=state.items.slice(state.topIdx);
+  if(rem.length===0){
+    area.innerHTML=`<div class="empty-state"><div class="emoji">🎊</div><h3>شاهدت كل العروض!</h3><p>تحقق لاحقاً لعروض جديدة</p><button class="btn-outline" onclick="resetCards()">إعادة التشغيل</button></div>`;
+    btns.style.display='none';return;
+  }
+  btns.style.display='flex';area.innerHTML='';
+  rem.slice(0,2).reverse().forEach((item,i)=>{
+    const isTop=i===rem.slice(0,2).length-1;
+    const card=document.createElement('div');
+    card.className=`swipe-card ${isTop?'top':'behind'}`;
+    card.innerHTML=`<img src="${item.img}" alt="${item.name}" draggable="false"/>
+      <div class="cat-badge">${item.cat}</div>
+      <div class="overlay-label overlay-like" id="overlayLike">أريده!</div>
+      <div class="overlay-label overlay-nope" id="overlayNope">تجاوز</div>
+      <div class="card-info"><div class="item-name">${item.name}</div>
+      <div class="owner">بواسطة ${item.owner}</div>
+      <div class="trade-tag"><span>🔄 مقابل: ${item.tradeFor}</span></div></div>`;
+    area.appendChild(card);
+    if(isTop)setupSwipe(card,item);
+  });
+}
+function setupSwipe(card,item){
+  let startX=0,curX=0,dragging=false;
+  const onStart=e=>{dragging=true;startX=(e.touches?e.touches[0]:e).clientX;card.style.transition='none';};
+  const onMove=e=>{
+    if(!dragging)return;e.preventDefault();
+    curX=(e.touches?e.touches[0]:e).clientX-startX;
+    card.style.transform=`translateX(${curX}px) rotate(${curX/14}deg)`;
+    const l=card.querySelector('#overlayLike'),n=card.querySelector('#overlayNope');
+    if(l)l.style.opacity=curX>30?Math.min((curX-30)/60,1):0;
+    if(n)n.style.opacity=curX<-30?Math.min((-curX-30)/60,1):0;
+  };
+  const onEnd=()=>{
+    if(!dragging)return;dragging=false;
+    card.style.transition='transform 0.35s ease, opacity 0.35s';
+    if(Math.abs(curX)>100){
+      const dir=curX>0?'right':'left';
+      card.style.transform=`translateX(${dir==='right'?130:-130}%) rotate(${dir==='right'?20:-20}deg)`;
+      card.style.opacity='0';
+      setTimeout(()=>doSwipe(dir,item),350);
+    }else{card.style.transform='translate(0,0) rotate(0)';curX=0;}
+  };
+  card.addEventListener('mousedown',onStart);card.addEventListener('mousemove',onMove);
+  card.addEventListener('mouseup',onEnd);card.addEventListener('mouseleave',onEnd);
+  card.addEventListener('touchstart',onStart,{passive:true});
+  card.addEventListener('touchmove',onMove,{passive:false});
+  card.addEventListener('touchend',onEnd);
+}
+function swipeCard(dir){
+  const card=document.querySelector('.swipe-card.top');
+  if(!card)return;
+  const item=state.items[state.topIdx];
+  card.style.transition='transform 0.35s ease, opacity 0.35s';
+  card.style.transform=`translateX(${dir==='right'?130:-130}%) rotate(${dir==='right'?20:-20}deg)`;
+  card.style.opacity='0';
+  setTimeout(()=>doSwipe(dir,item),350);
+}
+function doSwipe(dir,item){
+  state.topIdx++;
+  if(dir==='right'&&Math.random()>0.35){
+    const m={id:Date.now(),user:item.owner,avatar:item.owner[0],item:item.name,theirItem:'عرضك',lastMsg:'تمت المطابقة! 🎉',time:'الآن',unread:1};
+    state.matches.unshift(m);state.messages[m.id]=[];state.pendingMatch=m;
+    updateMatchBadge();renderMatches();showMatchPopup(item);
+  }
+  renderCards();
+}
+function resetCards(){state.topIdx=0;renderCards();}
+function updateMatchBadge(){
+  const u=state.matches.filter(m=>m.unread>0).length;
+  const b=document.getElementById('matchBadge');
+  b.style.display=u>0?'flex':'none';b.textContent=u;
+}
+function renderMatches(){
+  const list=document.getElementById('matchesList');
+  if(!state.matches.length){list.innerHTML=`<div class="empty-state"><div class="emoji">💫</div><p>لا مطابقات بعد!</p></div>`;return;}
+  list.innerHTML=state.matches.map(m=>`<div class="match-item" onclick="openChat(${m.id})">
+    <div class="avatar lg">${m.avatar}</div>
+    <div class="match-details">
+      <div class="match-header"><span class="match-name">${m.user}</span><span class="match-time">${m.time}</span></div>
+      <div class="match-msg">${m.lastMsg}</div>
+      <div class="match-trade">🔄 ${m.item} ↔ ${m.theirItem}</div>
+    </div>
+    ${m.unread>0?`<div class="unread-dot">${m.unread}</div>`:''}
+  </div>`).join('');
+}
+function openChat(id){
+  const m=state.matches.find(x=>x.id===id);if(!m)return;
+  state.activeMatchId=id;m.unread=0;updateMatchBadge();renderMatches();
+  document.getElementById('chatAvatar').textContent=m.avatar;
+  document.getElementById('chatName').textContent=m.user;
+  document.getElementById('chatSub').textContent=`🔄 ${m.item} ↔ ${m.theirItem}`;
+  if(!state.messages[id])state.messages[id]=[];
+  renderMessages();showScreen('chatScreen');
+}
+function closeChat(){showScreen('mainScreen');switchTab('matches');}
+function renderMessages(){
+  const area=document.getElementById('messagesArea');
+  area.innerHTML=(state.messages[state.activeMatchId]||[]).map(m=>`
+    <div class="msg-row ${m.from}"><div class="bubble ${m.from}">${m.text}<div class="time">${m.time}</div></div></div>`).join('');
+  area.scrollTop=area.scrollHeight;
+}
+function sendMsg(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();if(!text)return;
+  const now=new Date();const t=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  state.messages[state.activeMatchId].push({from:'me',text,time:t});
+  input.value='';renderMessages();
+  const replies=['رائع! متى يناسبك؟ 😊','يبدو جيداً!','ممتاز! هل يمكنك الاجتماع غداً؟','موافق! أين نلتقي؟'];
+  setTimeout(()=>{
+    state.messages[state.activeMatchId].push({from:'other',text:replies[Math.floor(Math.random()*replies.length)],time:t});
+    renderMessages();
+  },1200);
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+function showMatchPopup(item){document.getElementById('popupMatchName').textContent=item.owner;document.getElementById('matchPopup').classList.add('open');}
+function closePopup(){document.getElementById('matchPopup').classList.remove('open');}
+function openMatchChat(){closePopup();if(state.pendingMatch){showScreen('mainScreen');switchTab('matches');setTimeout(()=>openChat(state.pendingMatch.id),100);}}
+</script>
+</body>
+</html>
