@@ -1,0 +1,8 @@
+{
+  "appId": "com.swappy.app",
+  "appName": "سوابي",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
